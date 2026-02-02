@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savings App Login</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- LIBS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body class="dark-mode">
+
+    <!-- 1. AUTH PAGE (Centered Card Layout) -->
+    <div id="auth-wrapper">
+        <canvas id="login-canvas"></canvas>
+        <div id="auth-card">
+            <h2 id="auth-title">Savings App Login</h2>
+            <div class="auth-input-group">
+                <input type="text" id="login-user" class="auth-input" placeholder="Username">
+                <input type="password" id="login-pass" class="auth-input" placeholder="Password">
+            </div>
+            <div id="login-error-msg" class="auth-error-box"></div>
+            <button id="auth-btn" class="btn-auth" onclick="handleAuth()">Login</button>
+            <p id="auth-toggle-text" class="auth-toggle" onclick="toggleAuthMode()">Don't have an account? Sign Up</p>
+        </div>
+    </div>
+
+    <!-- 2. HEADER -->
+    <div id="header-bar">
+        <button id="hamburger-btn" onclick="toggleSidebar()">☰</button>
+        <div class="header-title" style="font-weight: 800; font-size: 1.4rem;">Savings Tracker</div>
+    </div>
+
+    <!-- 3. SIDEBAR -->
+    <nav id="sidebar">
+        <button class="nav-btn active" onclick="showPage('home-page')">🏠 Home</button>
+        <button class="nav-btn" onclick="showPage('diary-page')">📓 Goal Diary</button>
+        <button class="nav-btn" onclick="showPage('analytics-page')">📊 Analytics</button>
+
+        <div class="mode-toggle">
+            <span>Mode</span>
+            <label class="switch">
+                <input type="checkbox" id="theme-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <button class="nav-btn" onclick="location.reload()" style="color: #ff6b6b; margin-top: 10px;">🚪 Logout</button>
+    </nav>
+
+    <!-- 4. MAIN CONTENT -->
+    <main id="main-content">
+
+        <!-- HOME PAGE -->
+        <section id="home-page" class="page-section" style="display: none;">
+            <!-- 3D PIGGY BANK -->
+            <div id="piggy-container"></div>
+
+            <!-- UI BOX 1: TOTAL SAVINGS -->
+            <div class="ui-box">
+                <div id="balance-wrapper"
+                    style="position: relative; width: 100%; display: flex; justify-content: center;">
+                    <button id="total-btn" class="btn btn-gold btn-lg" onclick="toggleBalance()">Total Savings</button>
+                    <div id="balance-text"
+                        style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); opacity: 0; font-weight: bold; font-size: 1.5rem; display: none;">
+                        $ <span id="val-amount">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- UI BOX 2: TRANSACTIONS -->
+            <div class="ui-box" style="position: relative; z-index: 999;">
+                <button id="credit-debit-btn" class="btn btn-emerald btn-lg" onclick="showPage('transaction-page')"
+                    style="width: 100%; margin:0;">Credit / Debit</button>
+            </div>
+        </section>
+
+        <!-- TRANSACTION PAGE -->
+        <section id="transaction-page" class="page-section" style="display: none;">
+            <button id="back-to-home" class="btn btn-outline"
+                style="position:absolute; top:20px; left:20px; z-index:1000;" onclick="showPage('home-page')">←
+                Back</button>
+
+            <!-- 3. Top Center Piggy (Txn) -->
+            <div id="piggy-container-txn"
+                style="width:100%; height:300px; position:relative; z-index:10; margin-top: 40px;"></div>
+
+            <!-- 4. Action Buttons -->
+            <div id="txn-actions" class="flex-center gap-1"
+                style="margin-top:20px; transition: all 0.3s; position: relative; z-index: 999;">
+                <button class="btn btn-success btn-lg" onclick="startTxn('Credit')">CREDIT (+)</button>
+                <button class="btn btn-danger btn-lg" onclick="startTxn('Debit')">DEBIT (-)</button>
+            </div>
+
+            <!-- 5. Input Form (Hidden initially) -->
+            <div id="txn-form" class="card"
+                style="margin: 20px auto; max-width: 400px; display: none; text-align: center; position: relative; z-index: 999;">
+                <h3 id="txn-type-title" style="margin-bottom: 15px;">Add Credit</h3>
+                <input type="number" id="txn-amt" class="login-input" placeholder="Amount ($)"
+                    style="text-align:center;">
+                <input type="text" id="txn-note" class="login-input" placeholder="Reason (e.g. Salary)"
+                    style="text-align:center;">
+                <button class="btn btn-gold" style="width:100%; margin-top:10px;" onclick="confirmTxn()">OK</button>
+                <button class="btn btn-outline" style="width:100%; margin-top:5px; border:none;"
+                    onclick="cancelTxn()">Cancel</button>
+            </div>
+
+            <!-- 6. Reports Box -->
+            <div id="reports-box" class="card"
+                style="margin: 20px auto; max-width: 500px; height: 300px; overflow-y: auto; text-align: left;">
+                <h4
+                    style="position:sticky; top:0; background:var(--bg-secondary); padding-bottom:10px; border-bottom:1px solid var(--border);">
+                    Transaction Reports</h4>
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-body">
+                        <!-- JS renders rows here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- DIARY PAGE -->
+        <section id="diary-page" class="page-section">
+            <h2 style="margin-bottom: 20px;">Goal Diary</h2>
+            <div class="diary-grid">
+                <!-- Left Column: Create New Goal -->
+                <div class="diary-column">
+                    <div class="card">
+                        <h3 style="margin-bottom: 20px;">Create New Goal</h3>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Target Amount ($)</label>
+                        <input type="number" id="diary-target" class="login-input" placeholder="e.g. 10000">
+
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Strategies</label>
+                        <textarea id="diary-strategies" rows="6" class="login-input" placeholder="Type your strategy here...
+(Press Enter for new points)"></textarea>
+
+                        <button class="btn btn-gold" style="width:100%; margin-top:10px;" onclick="saveGoalEntry()">Save
+                            Entry</button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Saved Milestones -->
+                <div class="diary-column">
+                    <h3 style="margin-bottom: 20px;">Saved Milestones</h3>
+                    <div id="milestones-container" class="milestones-list">
+                        <!-- Goal cards injected here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ANALYTICS PAGE -->
+        <section id="analytics-page" class="page-section">
+            <h2 style="margin-bottom: 25px;">Financial Analytics</h2>
+
+            <!-- BENTO GRID TOP ROW -->
+            <div class="analytics-bento">
+                <div class="card stat-card">
+                    <h4>Daily Overview</h4>
+                    <div class="stat-row">
+                        <span>Gains:</span> <span id="daily-gains" class="text-emerald">$0.00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Spends:</span> <span id="daily-spends" class="text-red">$0.00</span>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <h4>Monthly Overview</h4>
+                    <div class="stat-row">
+                        <span>Gains:</span> <span id="monthly-gains" class="text-emerald">$0.00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Spends:</span> <span id="monthly-spends" class="text-red">$0.00</span>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <h4>Yearly Overview</h4>
+                    <div class="stat-row">
+                        <span>Gains:</span> <span id="yearly-gains" class="text-emerald">$0.00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Spends:</span> <span id="yearly-spends" class="text-red">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECOND ROW: CHART & SEARCHABLE HISTORY -->
+            <div class="analytics-main-grid">
+                <div class="card chart-container-card">
+                    <h3>Spending Breakdown</h3>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="spending-donut"></canvas>
+                    </div>
+                </div>
+
+                <div class="card history-container-card">
+                    <div class="flex-between" style="margin-bottom: 15px;">
+                        <h3>Detailed History</h3>
+                        <input type="text" id="analytics-search" placeholder="Search by reason..."
+                            onkeyup="filterAnalyticsTable()" class="login-input"
+                            style="max-width: 250px; margin-bottom:0;">
+                    </div>
+                    <div class="table-scroll">
+                        <table class="history-table" id="analytics-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody id="analytics-body">
+                                <!-- JS Renders here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- GLOBAL VARIABLES ---
+        let currentUser = null;
+        let totalBalance = 0.00; // GLOBAL MATH VARIABLE
+        let loginScene, homeScene, homeRenderer, homeCamera, piggyGroup;
+        let txnScene, txnRenderer, txnCamera, txnPiggyGroup, coinGroup;
+        let animationId;
+        let activeTxnType = '';
+        let analyticsChart = null; // Global chart instance
+
+        // ======================================================
+        // 1. LOGIN SCENE (Gold Coins & Green Notes)
+        // ======================================================
+        function initLoginScene() {
+            const canvas = document.getElementById('login-canvas');
+            if (!canvas) return;
+
+            loginScene = new THREE.Scene();
+            // loginScene.background = new THREE.Color(0x1a1a1a); // REMOVED FOR TRANSPARENCY
+            loginScene.fog = new THREE.FogExp2(0x667eea, 0.02);
+
+            const cam = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            cam.position.z = 15;
+            const ren = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            ren.setSize(window.innerWidth, window.innerHeight);
+
+            // Lighting
+            loginScene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const pointLight = new THREE.PointLight(0xffd700, 1.5, 50);
+            pointLight.position.set(5, 5, 5);
+            loginScene.add(pointLight);
+
+            // Objects Group
+            const objectGroup = new THREE.Group();
+            loginScene.add(objectGroup);
+
+            // Materials
+            const coinGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.1, 32);
+            const coinMat = new THREE.MeshStandardMaterial({
+                color: 0xffd700, // Bright Gold
+                metalness: 1.0,
+                roughness: 0.1,
+                emissive: 0x221100,
+                emissiveIntensity: 0.2
+            });
+            const noteGeo = new THREE.BoxGeometry(1.5, 0.7, 0.02);
+            const noteMat = new THREE.MeshStandardMaterial({
+                color: 0x85bb65, // Note Green
+                metalness: 0.1,
+                roughness: 0.8
+            });
+
+            const objects = [];
+            // Create scattered objects
+            for (let i = 0; i < 40; i++) {
+                const isCoin = Math.random() > 0.4;
+                const mesh = new THREE.Mesh(isCoin ? coinGeo : noteGeo, isCoin ? coinMat : noteMat);
+                mesh.position.set(
+                    (Math.random() - 0.5) * 30,
+                    (Math.random() - 0.5) * 30,
+                    (Math.random() - 0.5) * 15
+                );
+                mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                mesh.userData = {
+                    rotSpeedX: (Math.random() - 0.5) * 0.02,
+                    rotSpeedY: (Math.random() - 0.5) * 0.02,
+                    floatSpeed: (Math.random() * 0.01) + 0.005
+                };
+                objects.push(mesh);
+                objectGroup.add(mesh);
+            }
+
+            function animate() {
+                if (document.getElementById('auth-wrapper').style.display === 'none') return;
+                requestAnimationFrame(animate);
+
+                objectGroup.rotation.y += 0.001;
+                objects.forEach(obj => {
+                    obj.rotation.x += obj.userData.rotSpeedX;
+                    obj.rotation.y += obj.userData.rotSpeedY;
+                    obj.position.y += Math.sin(Date.now() * 0.001) * 0.005;
+                });
+
+                ren.render(loginScene, cam);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                cam.aspect = window.innerWidth / window.innerHeight;
+                cam.updateProjectionMatrix();
+                ren.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+        setTimeout(initLoginScene, 100);
+
+        // HELPER: Create Piggy Mesh (Reusable)
+        function createPiggyMesh() {
+            const group = new THREE.Group();
+            const roseGoldMat = new THREE.MeshStandardMaterial({
+                color: 0xb76e79, metalness: 0.6, roughness: 0.2
+            });
+
+            // Body
+            const bodyGeo = new THREE.CylinderGeometry(1.5, 1.5, 3.5, 32);
+            bodyGeo.rotateZ(Math.PI / 2);
+            group.add(new THREE.Mesh(bodyGeo, roseGoldMat));
+
+            // Head
+            const head = new THREE.Mesh(new THREE.SphereGeometry(1.45, 32, 32), roseGoldMat);
+            head.position.x = 1.7;
+            group.add(head);
+
+            // Snout
+            const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.4, 32), roseGoldMat);
+            snout.rotateZ(Math.PI / 2);
+            snout.position.x = 3.0;
+            group.add(snout);
+
+            // Legs
+            const legGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.0, 16);
+            [[-1, -1.5, 0.8], [-1, -1.5, -0.8], [1, -1.5, 0.8], [1, -1.5, -0.8]].forEach(p => {
+                const leg = new THREE.Mesh(legGeo, roseGoldMat);
+                leg.position.set(p[0], p[1], p[2]);
+                group.add(leg);
+            });
+
+            // Ears
+            const earGeo = new THREE.ConeGeometry(0.4, 0.8, 16);
+            const lEar = new THREE.Mesh(earGeo, roseGoldMat); lEar.position.set(1.8, 1.2, 0.8); lEar.rotation.set(-0.5, 0, -0.5);
+            const rEar = new THREE.Mesh(earGeo, roseGoldMat); rEar.position.set(1.8, 1.2, -0.8); rEar.rotation.set(0.5, 0, -0.5);
+            group.add(lEar); group.add(rEar);
+
+            return group;
+        }
+
+        // ======================================================
+        // 2. HOME SCENE
+        // ======================================================
+        function initHome3D() {
+            const container = document.getElementById('piggy-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            homeScene = new THREE.Scene();
+            homeCamera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            homeCamera.position.z = 8;
+            homeCamera.position.y = 1;
+
+            homeRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            homeRenderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(homeRenderer.domElement);
+
+            homeScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dl = new THREE.SpotLight(0xffffff, 1.5);
+            dl.position.set(10, 10, 10);
+            homeScene.add(dl);
+
+            piggyGroup = createPiggyMesh();
+            homeScene.add(piggyGroup);
+
+            function animate() {
+                if (document.getElementById('home-page').style.display === 'none') {
+                    requestAnimationFrame(animate); return;
+                }
+                requestAnimationFrame(animate);
+                piggyGroup.rotation.y += 0.01;
+                homeRenderer.render(homeScene, homeCamera);
+            }
+            animate();
+        }
+
+        // ======================================================
+        // 3. TRANSACTION SCENE (Interactive)
+        // ======================================================
+        function initTransactionPiggy() {
+            const container = document.getElementById('piggy-container-txn');
+            if (!container) return;
+            container.innerHTML = '';
+
+            txnScene = new THREE.Scene();
+            txnCamera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            txnCamera.position.z = 8;
+            txnCamera.position.y = 1;
+
+            txnRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            txnRenderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(txnRenderer.domElement);
+
+            txnScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dl = new THREE.SpotLight(0xffffff, 1.5);
+            dl.position.set(10, 10, 10);
+            txnScene.add(dl);
+
+            txnPiggyGroup = createPiggyMesh();
+            txnScene.add(txnPiggyGroup);
+
+            // COIN GROUP FOR ANIMATION
+            coinGroup = new THREE.Group();
+            txnScene.add(coinGroup);
+
+            function animate() {
+                if (document.getElementById('transaction-page').style.display === 'none') {
+                    requestAnimationFrame(animate); return;
+                }
+                requestAnimationFrame(animate);
+                txnPiggyGroup.rotation.y += 0.01;
+                txnRenderer.render(txnScene, txnCamera);
+            }
+            animate();
+        }
+
+        // ======================================================
+        // 4. TRANSACTION LOGIC
+        // ======================================================
+        function startTxn(type) {
+            activeTxnType = type;
+            document.getElementById('txn-actions').style.display = 'none';
+            document.getElementById('txn-form').style.display = 'block';
+            document.getElementById('txn-type-title').innerText = type === 'Credit' ? 'Add Credit (+)' : 'Add Debit (-)';
+
+            // Focus
+            setTimeout(() => document.getElementById('txn-amt').focus(), 100);
+        }
+
+        function cancelTxn() {
+            document.getElementById('txn-actions').style.display = 'flex';
+            document.getElementById('txn-form').style.display = 'none';
+            document.getElementById('txn-amt').value = '';
+            document.getElementById('txn-note').value = '';
+        }
+
+        function confirmTxn() {
+            const amt = parseFloat(document.getElementById('txn-amt').value);
+            const note = document.getElementById('txn-note').value || 'No reason';
+            if (!amt || amt <= 0) return Swal.fire('Please enter a valid amount');
+
+            // 1. GLOBAL MATH
+            if (activeTxnType === 'Credit') {
+                totalBalance += amt;
+                spawnCoins('in');
+            } else {
+                totalBalance -= amt;
+                spawnCoins('out');
+            }
+
+            // 2. REPORTS BOX
+            const tbody = document.getElementById('report-body');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${new Date().toLocaleDateString()}</td>
+                <td style="color: ${activeTxnType === 'Credit' ? '#2ecc71' : '#e74c3c'}; font-weight:bold;">${activeTxnType}</td>
+                <td>$${amt.toFixed(2)}</td>
+                <td>${note}</td>
+            `;
+            tbody.insertBefore(row, tbody.firstChild);
+
+            // 3. SERVER SYNC
+            if (currentUser) {
+                const txnData = {
+                    name: currentUser,
+                    amount: amt,
+                    type: activeTxnType,
+                    note: note
+                };
+
+                fetch('http://127.0.0.1:5000/transaction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(txnData)
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Refresh balance and ledger from DB
+                            fetchBalance();
+                            fetchLedger();
+
+                            // Reset UI
+                            cancelTxn();
+
+                            // Trigger toast
+                            setTimeout(() => {
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: `${activeTxnType} of $${amt} recorded.`,
+                                    icon: 'success',
+                                    toast: true,
+                                    position: 'top-end',
+                                    showConfirmButton: false,
+                                    timer: 2000,
+                                    timerProgressBar: true,
+                                    background: 'var(--bg-secondary)',
+                                    color: 'var(--text-primary)'
+                                });
+                            }, 1200);
+                        }
+                    });
+            }
+        }
+
+        function spawnCoins(direction) {
+            // Visualize 20 coins
+            const geo = new THREE.CylinderGeometry(0.3, 0.3, 0.05, 16);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 1.0 });
+
+            for (let i = 0; i < 20; i++) {
+                const coin = new THREE.Mesh(geo, mat);
+
+                // Start Pos
+                if (direction === 'in') {
+                    // Start outside, fly to center
+                    coin.position.set((Math.random() - 0.5) * 10, (Math.random() + 0.5) * 5, (Math.random() - 0.5) * 5);
+                } else {
+                    // Start center, fly out
+                    coin.position.set(0, 0, 0);
+                }
+                coin.rotation.set(Math.random(), Math.random(), Math.random());
+                coinGroup.add(coin);
+
+                // Animation
+                const target = direction === 'in' ? { x: 0, y: 0, z: 0 } : { x: (Math.random() - 0.5) * 10, y: (Math.random() - 0.5) * 10, z: (Math.random() + 0.5) * 5 };
+
+                gsap.to(coin.position, {
+                    x: target.x, y: target.y, z: target.z,
+                    duration: 1 + Math.random(),
+                    ease: "power2.out",
+                    onComplete: () => {
+                        coinGroup.remove(coin);
+                    }
+                });
+                gsap.to(coin.rotation, { x: 10, duration: 1 });
+            }
+        }
+
+        // ======================================================
+        // 5. AUTH LOGIC (LOGIN & SIGNUP)
+        // ======================================================
+        let authMode = 'login'; // 'login' or 'signup'
+
+        function toggleAuthMode() {
+            const title = document.getElementById('auth-title');
+            const btn = document.getElementById('auth-btn');
+            const toggle = document.getElementById('auth-toggle-text');
+            const errorDiv = document.getElementById('login-error-msg');
+
+            errorDiv.style.display = 'none';
+
+            if (authMode === 'login') {
+                authMode = 'signup';
+                title.innerText = "Create Account";
+                btn.innerText = "Sign Up";
+                toggle.innerText = "Already have an account? Login";
+            } else {
+                authMode = 'login';
+                title.innerText = "Savings App Login";
+                btn.innerText = "Login";
+                toggle.innerText = "Don't have an account? Sign Up";
+            }
+        }
+
+        function handleAuth() {
+            const user = document.getElementById('login-user').value;
+            const pass = document.getElementById('login-pass').value;
+            const errorDiv = document.getElementById('login-error-msg');
+
+            if (!user || !pass) {
+                showAuthStatus("All fields required", "red");
+                shakeLogin();
+                return;
+            }
+
+            const endpoint = authMode === 'login' ? '/login' : '/signup';
+
+            fetch(`http://127.0.0.1:5000${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (authMode === 'signup') {
+                            showAuthStatus(data.message, "green");
+                            toggleAuthMode(); // Switch to login back
+                            document.getElementById('login-user').value = '';
+                            document.getElementById('login-pass').value = '';
+                        } else {
+                            currentUser = user;
+                            proceedToApp();
+                        }
+                    } else {
+                        showAuthStatus(data.message, "red");
+                        shakeLogin();
+                    }
+                })
+                .catch(() => {
+                    showAuthStatus("Server Connection Error", "red");
+                    shakeLogin();
+                });
+        }
+
+        function showAuthStatus(msg, color) {
+            const errorDiv = document.getElementById('login-error-msg');
+            errorDiv.innerText = msg;
+            errorDiv.style.color = color === 'red' ? '#ff6b6b' : '#2ecc71';
+            errorDiv.style.display = "block";
+        }
+
+        function shakeLogin() {
+            gsap.to('#auth-card', {
+                x: -10, duration: 0.1, repeat: 5, yoyo: true, onComplete: () => {
+                    gsap.set('#auth-card', { x: 0 });
+                }
+            });
+        }
+
+        function proceedToApp() {
+            // Transition
+            gsap.to('#auth-card', { opacity: 0, duration: 0.5 });
+            gsap.to('#auth-wrapper', {
+                opacity: 0, duration: 0.5, delay: 0.2, onComplete: () => {
+                    document.getElementById('auth-wrapper').style.display = 'none';
+                    const home = document.getElementById('home-page');
+                    home.style.display = 'block';
+                    home.style.opacity = 0;
+                    gsap.to(home, { opacity: 1, duration: 0.5 });
+
+                    // Init Home 3D
+                    setTimeout(initHome3D, 200);
+
+                    // Initial fetch for balance
+                    fetchBalance();
+                    // Load goals and ledger
+                    fetchGoals();
+                    fetchLedger();
+                }
+            });
+        }
+
+        function fetchBalance() {
+            if (!currentUser) return;
+            fetch('http://127.0.0.1:5000/get_balance?name=' + currentUser)
+                .then(r => r.json())
+                .then(d => {
+                    totalBalance = d.balance;
+                    updateBalanceUI();
+                });
+        }
+
+        function fetchLedger() {
+            if (!currentUser) return;
+            fetch('http://127.0.0.1:5000/get_ledger?name=' + currentUser)
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('report-body');
+                    if (!tbody) return;
+                    tbody.innerHTML = '';
+                    data.forEach(x => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                                <td>${new Date(x.timestamp * 1000).toLocaleDateString()}</td>
+                                <td style="color: ${x.type === 'Credit' ? '#2ecc71' : '#e74c3c'}; font-weight:bold;">${x.type}</td>
+                                <td>$${parseFloat(x.amount).toFixed(2)}</td>
+                                <td>${x.note || 'No reason'}</td>
+                            `;
+                        tbody.appendChild(row);
+                    });
+                });
+        }
+
+        function fetchGoals() {
+            if (!currentUser) return;
+            fetch('http://127.0.0.1:5000/get_goals?name=' + currentUser)
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('milestones-container');
+                    container.innerHTML = '';
+                    data.forEach(goal => {
+                        renderGoalCard(goal, false);
+                    });
+                });
+        }
+
+        // --- THEME TOGGLE LOGIC ---
+        const toggle = document.getElementById('theme-toggle');
+        if (toggle) {
+            toggle.addEventListener('change', () => {
+                document.body.classList.toggle('dark-mode');
+                document.body.classList.toggle('light-mode');
+            });
+        }
+        // Ensure Light Mode class exists if we switch to it (logic assumes body starts with one of them)
+        // Since we hardcoded class="dark-mode", toggle will remove it and add light-mode if we want.
+        // But toggle() adds if missing, removes if present.
+        // We'll trust the listener.
+
+        // --- CONSOLIDATED NAVIGATION LOGIC ---
+        function showPage(id) {
+            // 1. Hide all pages
+            const pages = document.querySelectorAll('.page-section');
+            pages.forEach(p => {
+                p.style.display = 'none';
+                p.style.opacity = 0;
+            });
+
+            // 2. Show the target page
+            const target = document.getElementById(id);
+            if (target) {
+                target.style.display = 'block';
+                gsap.to(target, { opacity: 1, duration: 0.5 });
+
+                // 3. Trigger 3D Init if it's the Transaction Page
+                if (id === 'transaction-page') {
+                    setTimeout(initTransactionPiggy, 100);
+                }
+                // 4. Trigger 3D Init if it's the Home Page
+                if (id === 'home-page') {
+                    setTimeout(initHome3D, 100);
+                }
+                // 5. Trigger Analytics Logic
+                if (id === 'analytics-page') {
+                    updateAnalytics();
+                }
+            }
+            // 5. Close sidebar on mobile after clicking
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.classList.remove('open');
+        }
+
+        // Live UI Sync Helper
+        function updateBalanceUI() {
+            const val = document.getElementById('val-amount');
+            if (val) val.innerText = totalBalance.toFixed(2);
+        }
+
+        // Update toggleBalance to use global variable
+        function toggleBalance() {
+            const btn = document.getElementById('total-btn');
+            const txt = document.getElementById('balance-text');
+
+            if (btn.innerText.includes('Total')) {
+                gsap.to(btn, { width: "40%", x: -60, duration: 0.4, ease: "power2.out" });
+                txt.style.display = 'block';
+
+                // USE GLOBAL VARIABLE
+                updateBalanceUI();
+
+                // Also fetch to sync valid startup data if 0
+                if (currentUser && totalBalance === 0) {
+                    fetch('http://127.0.0.1:5000/get_balance?name=' + currentUser)
+                        .then(r => r.json()).then(d => {
+                            totalBalance = d.balance; // Sync
+                            updateBalanceUI();
+                        });
+                }
+
+                gsap.fromTo(txt, { opacity: 0, x: 20 }, { opacity: 1, x: 0, delay: 0.2, duration: 0.4 });
+                btn.innerText = "Hide Balance";
+                btn.classList.remove('btn-gold');
+                btn.classList.add('btn-hide');
+            } else {
+                gsap.to(txt, { opacity: 0, x: 20, duration: 0.2, onComplete: () => { txt.style.display = 'none'; } });
+                gsap.to(btn, { width: "100%", x: 0, duration: 0.4, ease: "power2.in" });
+                btn.innerText = "Total Savings";
+                btn.classList.add('btn-gold');
+                btn.classList.remove('btn-hide');
+            }
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // --- DIARY LOGIC ---
+        function saveGoalEntry() {
+            const targetInput = document.getElementById('diary-target');
+            const strategiesInput = document.getElementById('diary-strategies');
+
+            const amount = parseFloat(targetInput.value);
+            const strategiesText = strategiesInput.value.trim();
+
+            if (!amount || amount <= 0) return Swal.fire('Please enter a target amount');
+            if (!strategiesText) return Swal.fire('Please enter some strategies');
+
+            const goalData = {
+                username: currentUser,
+                target: amount,
+                strategies: strategiesText
+            };
+
+            fetch('http://127.0.0.1:5000/save_goal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(goalData)
+            })
+                .then(res => res.json())
+                .then(() => {
+                    renderGoalCard({
+                        timestamp: Date.now() / 1000,
+                        target: amount,
+                        strategies: strategiesText
+                    }, true);
+
+                    targetInput.value = '';
+                    strategiesInput.value = '';
+
+                    Swal.fire({ title: 'Goal Saved!', icon: 'success', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
+                });
+        }
+
+        function renderGoalCard(goal, isNew) {
+            const container = document.getElementById('milestones-container');
+            const amount = parseFloat(goal.target);
+            const formattedAmount = amount.toLocaleString('en-US');
+            const dateStr = new Date(goal.timestamp * 1000).toLocaleDateString();
+
+            const strategiesList = goal.strategies.split('\n').filter(s => s.trim() !== '');
+            let stratHtml = '<ul class="strategy-list">';
+            strategiesList.forEach(s => { stratHtml += `<li>${s.trim()}</li>`; });
+            stratHtml += '</ul>';
+
+            const card = document.createElement('div');
+            card.className = 'card milestone-card';
+            card.innerHTML = `
+                <div class="milestone-header">
+                    <span class="milestone-date">${dateStr}</span>
+                    <span class="milestone-amount">$${formattedAmount}</span>
+                </div>
+                <div class="milestone-content">${stratHtml}</div>
+            `;
+
+            if (isNew) {
+                container.insertBefore(card, container.firstChild);
+                gsap.fromTo(card, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 });
+            } else {
+                container.appendChild(card);
+            }
+        }
+
+        // --- DATA ---
+        // Removed fetchData and submitTxn as their logic is now handled by login() and confirmTxn()
+        // The original fetchData had a discrepancy with 'balance-amount' vs 'val-amount'
+        // The new login() now fetches initial balance and ledger for the reports box.
+        // confirmTxn() handles transaction submission and updates totalBalance and reports.
+
+        // ======================================================
+        // 6. ANALYTICS LOGIC (MONGODB AGGREGATED)
+        // ======================================================
+        function updateAnalytics() {
+            if (!currentUser) return;
+
+            // 1. Fetch Aggregated Stats
+            fetch('http://127.0.0.1:5000/analytics?name=' + currentUser)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('daily-gains').innerText = `$${data.daily.gains.toLocaleString()}`;
+                    document.getElementById('daily-spends').innerText = `$${data.daily.spends.toLocaleString()}`;
+                    document.getElementById('monthly-gains').innerText = `$${data.monthly.gains.toLocaleString()}`;
+                    document.getElementById('monthly-spends').innerText = `$${data.monthly.spends.toLocaleString()}`;
+                    document.getElementById('yearly-gains').innerText = `$${data.yearly.gains.toLocaleString()}`;
+                    document.getElementById('yearly-spends').innerText = `$${data.yearly.spends.toLocaleString()}`;
+                });
+
+            // 2. Fetch History & Chart Data
+            fetch('http://127.0.0.1:5000/get_ledger?name=' + currentUser)
+                .then(r => r.json())
+                .then(data => {
+                    const expenseCategories = {};
+                    const historyBody = document.getElementById('analytics-body');
+                    historyBody.innerHTML = '';
+
+                    data.forEach(txn => {
+                        // Table row
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${new Date(txn.timestamp * 1000).toLocaleDateString()}</td>
+                            <td style="color: ${txn.type === 'Credit' ? '#2ecc71' : '#e74c3c'}; font-weight:bold;">${txn.type}</td>
+                            <td>$${parseFloat(txn.amount).toFixed(2)}</td>
+                            <td>${txn.note}</td>
+                        `;
+                        historyBody.appendChild(row);
+
+                        // Donut calculation
+                        if (txn.type === 'Debit') {
+                            const cat = txn.note || 'Other';
+                            expenseCategories[cat] = (expenseCategories[cat] || 0) + txn.amount;
+                        }
+                    });
+
+                    renderSpendingChart(expenseCategories);
+                });
+        }
+
+        function renderSpendingChart(categories) {
+            const ctx = document.getElementById('spending-donut').getContext('2d');
+            const labels = Object.keys(categories);
+            const data = Object.values(categories);
+
+            if (analyticsChart) analyticsChart.destroy();
+
+            if (labels.length === 0) {
+                // Handle empty state
+                return;
+            }
+
+            analyticsChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: document.body.classList.contains('dark-mode') ? '#fff' : '#333' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function filterAnalyticsTable() {
+            const input = document.getElementById('analytics-search');
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById('analytics-table');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                const tdReason = tr[i].getElementsByTagName('td')[3];
+                if (tdReason) {
+                    const txtValue = tdReason.textContent || tdReason.innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+
+    </script>
+</body>
+
+</html>
