@@ -193,9 +193,7 @@ def get_goals():
         data.append(doc)
     return jsonify(data), 200
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+
 
 
 if __name__ == "__main__":
