@@ -1,0 +1,5 @@
+.env
+private_key.bin
+.venv/
+__pycache__/
+*.pyc
