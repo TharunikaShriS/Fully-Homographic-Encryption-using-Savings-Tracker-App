@@ -237,6 +237,11 @@
     </main>
 
     <script>
+        const BASE_URL = "https://fully-homographic-encryption-using.onrender.com";
+
+        const BASE_URL = window.location.origin;
+
+
         // --- GLOBAL VARIABLES ---
         let currentUser = null;
         let totalBalance = 0.00; // GLOBAL MATH VARIABLE
@@ -501,7 +506,7 @@
                     note: note
                 };
 
-                fetch('http://127.0.0.1:5000/transaction', {
+                fetch(`${BASE_URL}/transaction`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(txnData)
@@ -607,9 +612,12 @@
                 return;
             }
 
-            const endpoint = authMode === 'login' ? '/login' : '/signup';
+            const endpoint = authMode === 'login'
+                ? `${BASE_URL}/login`
+                : `${BASE_URL}/signup`;
 
-            fetch(`http://127.0.0.1:5000${endpoint}`, {
+
+            fetch(`${BASE_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: user, password: pass })
@@ -677,7 +685,7 @@
 
         function fetchBalance() {
             if (!currentUser) return;
-            fetch('http://127.0.0.1:5000/get_balance?name=' + currentUser)
+            fetch(`${BASE_URL}/get_balance?name=` + currentUser)
                 .then(r => r.json())
                 .then(d => {
                     totalBalance = d.balance;
@@ -687,7 +695,7 @@
 
         function fetchLedger() {
             if (!currentUser) return;
-            fetch('http://127.0.0.1:5000/get_ledger?name=' + currentUser)
+            fetch(`${BASE_URL}/get_ledger?name=` + currentUser)
                 .then(r => r.json())
                 .then(data => {
                     const tbody = document.getElementById('report-body');
@@ -708,7 +716,7 @@
 
         function fetchGoals() {
             if (!currentUser) return;
-            fetch('http://127.0.0.1:5000/get_goals?name=' + currentUser)
+            fetch(`${BASE_URL}/get_goals?name=` + currentUser)
                 .then(r => r.json())
                 .then(data => {
                     const container = document.getElementById('milestones-container');
@@ -785,7 +793,7 @@
 
                 // Also fetch to sync valid startup data if 0
                 if (currentUser && totalBalance === 0) {
-                    fetch('http://127.0.0.1:5000/get_balance?name=' + currentUser)
+                    fetch(`${BASE_URL}/get_balance?name=` + currentUser)
                         .then(r => r.json()).then(d => {
                             totalBalance = d.balance; // Sync
                             updateBalanceUI();
@@ -826,7 +834,7 @@
                 strategies: strategiesText
             };
 
-            fetch('http://127.0.0.1:5000/save_goal', {
+            fetch(`${BASE_URL}/save_goal`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(goalData)
@@ -888,7 +896,7 @@
             if (!currentUser) return;
 
             // 1. Fetch Aggregated Stats
-            fetch('http://127.0.0.1:5000/analytics?name=' + currentUser)
+            fetch(`${BASE_URL}/analytics?name=` + currentUser)
                 .then(r => r.json())
                 .then(data => {
                     document.getElementById('daily-gains').innerText = `$${data.daily.gains.toLocaleString()}`;
@@ -900,7 +908,7 @@
                 });
 
             // 2. Fetch History & Chart Data
-            fetch('http://127.0.0.1:5000/get_ledger?name=' + currentUser)
+            fetch(`${BASE_URL}/get_ledger?name=` + currentUser)
                 .then(r => r.json())
                 .then(data => {
                     const expenseCategories = {};
